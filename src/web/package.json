@@ -41,7 +41,7 @@
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.0",
     "focus-trap-react": "^9.0.0",
-    "framer-motion": "^10.0.0",
+    "framer-motion": "^12.4.4",
     "immer": "^10.0.0",
     "jwt-decode": "4.0.0",
     "lodash": "4.x",
