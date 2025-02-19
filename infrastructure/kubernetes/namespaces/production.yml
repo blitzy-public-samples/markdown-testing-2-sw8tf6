@@ -1,0 +1,107 @@
+# Production namespace configuration for Task Management System
+# Version: v1
+# Purpose: Define production environment with enhanced security, monitoring and service mesh integration
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    name: production
+    environment: production
+    app: task-management-system
+    istio-injection: enabled
+    linkerd-injection: enabled
+    monitoring: enabled
+    security-tier: production
+    backup-enabled: "true"
+    compliance: sox-hipaa-gdpr
+    criticality: high
+    cost-center: production-workloads
+    component: namespace
+  annotations:
+    # Scheduling and Node Selection
+    scheduler.alpha.kubernetes.io/node-selector: environment=production
+    
+    # Network Policies
+    net.beta.kubernetes.io/network-policy: default-deny
+    
+    # Service Mesh Integration
+    linkerd.io/inject: enabled
+    istio.io/rev: production-v1
+    
+    # Backup Configuration
+    backup.velero.io/backup-volumes: "true"
+    
+    # Monitoring Integration
+    monitoring.prometheus.io/scrape: "true"
+    monitoring.prometheus.io/port: "9090"
+    
+    # Security and Policy Controls
+    policy.otterize.com/enabled: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    
+    # Resource Management
+    resource-quotas.kubernetes.io/enabled: "true"
+    
+    # Environment Metadata
+    environment: production
+    app: task-management-system
+    security-level: high
+    backup-policy: daily
+    monitoring-level: detailed
+    
+spec:
+  finalizers:
+    - kubernetes
+
+---
+# Resource Quotas for Production Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-quota
+  namespace: production
+spec:
+  hard:
+    requests.cpu: "32"
+    requests.memory: 64Gi
+    limits.cpu: "64"
+    limits.memory: 128Gi
+    requests.storage: 1Ti
+    persistentvolumeclaims: "50"
+    pods: "100"
+    services: "50"
+    secrets: "100"
+    configmaps: "100"
+
+---
+# Network Policy for Production Namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: logging
