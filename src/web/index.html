@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Task Management System - Comprehensive project and task management platform" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.taskmanager.com; img-src 'self' data: https:; worker-src 'self'" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+
+    <title>Task Management System</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Resource Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.taskmanager.com" />
+
+    <!-- Critical CSS -->
+    <link rel="stylesheet" href="/src/assets/styles/global.css" />
+
+    <!-- Deferred Styles -->
+    <link 
+      rel="stylesheet" 
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" 
+      media="print" 
+      onload="this.media='all'"
+    />
+
+    <!-- Fallback for no JavaScript -->
+    <noscript>
+      <link 
+        rel="stylesheet" 
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      />
+      <style>
+        .js-only { display: none !important; }
+        .no-js-message {
+          display: block;
+          padding: 20px;
+          text-align: center;
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <!-- Skip to main content link for accessibility -->
+    <a href="#root" class="skip-to-main">Skip to main content</a>
+
+    <!-- Application root -->
+    <div id="root" role="application">
+      <noscript>
+        <div class="no-js-message">
+          <h1>JavaScript Required</h1>
+          <p>Please enable JavaScript to use the Task Management System.</p>
+        </div>
+      </noscript>
+    </div>
+
+    <!-- Application entry point -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Performance monitoring -->
+    <script>
+      performance.mark('app-start');
+      // Detect unsupported browsers
+      if (!('fetch' in window) || !('Promise' in window) || !('assign' in Object)) {
+        document.getElementById('root').innerHTML = '<div class="no-js-message"><h1>Browser Not Supported</h1><p>Please use a modern browser to access the Task Management System.</p></div>';
+      }
+    </script>
+  </body>
+</html>
