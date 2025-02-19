@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-service
+  namespace: default
+  labels:
+    app: task-service
+    component: backend
+    part-of: task-management-system
+    tier: microservice
+    managed-by: kubernetes
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3002"
+    prometheus.io/path: "/metrics"
+    service.kubernetes.io/description: "Task Service endpoint for task management operations"
+    service.kubernetes.io/load-balancer-class: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP
+      name: http-api
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: task-service
+    component: backend
+  sessionAffinity: None
+  publishNotReadyAddresses: false
+  internalTrafficPolicy: Cluster
