@@ -1,0 +1,237 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: default
+  labels:
+    app: api-gateway
+    component: config
+  annotations:
+    description: "API Gateway configuration for Task Management System"
+    checksum/config: "{{ .Files.Get \"configmap.yml\" | sha256sum }}"
+data:
+  cors-config.json: |
+    {
+      "development": {
+        "origin": [
+          "http://localhost:3000",
+          "http://localhost:5173",
+          "http://localhost:8080"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        "allowedHeaders": [
+          "Content-Type",
+          "Authorization",
+          "X-Requested-With",
+          "Accept",
+          "X-API-Key",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "exposedHeaders": [
+          "X-RateLimit-Limit",
+          "X-RateLimit-Remaining",
+          "X-RateLimit-Reset",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "credentials": true,
+        "maxAge": 3600,
+        "preflightContinue": false,
+        "optionsSuccessStatus": 204
+      },
+      "staging": {
+        "origin": [
+          "https://staging.taskmanager.com",
+          "https://api.staging.taskmanager.com",
+          "https://mobile.staging.taskmanager.com"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        "allowedHeaders": [
+          "Content-Type",
+          "Authorization",
+          "X-Requested-With",
+          "Accept",
+          "X-API-Key",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "exposedHeaders": [
+          "X-RateLimit-Limit",
+          "X-RateLimit-Remaining",
+          "X-RateLimit-Reset",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "credentials": true,
+        "maxAge": 86400,
+        "preflightContinue": false,
+        "optionsSuccessStatus": 204
+      },
+      "production": {
+        "origin": [
+          "https://taskmanager.com",
+          "https://api.taskmanager.com",
+          "https://mobile.taskmanager.com"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        "allowedHeaders": [
+          "Content-Type",
+          "Authorization",
+          "X-Requested-With",
+          "Accept",
+          "X-API-Key",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "exposedHeaders": [
+          "X-RateLimit-Limit",
+          "X-RateLimit-Remaining",
+          "X-RateLimit-Reset",
+          "X-Request-ID",
+          "X-Correlation-ID"
+        ],
+        "credentials": true,
+        "maxAge": 86400,
+        "preflightContinue": false,
+        "optionsSuccessStatus": 204
+      }
+    }
+
+  rate-limit-config.json: |
+    {
+      "development": {
+        "publicApi": {
+          "windowMs": 60000,
+          "max": 200,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Too many requests from this IP, please try again after a minute",
+          "skipFailedRequests": true,
+          "keyGenerator": "ip"
+        },
+        "internalApi": {
+          "windowMs": 60000,
+          "max": 2000,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Internal API rate limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "apiKey"
+        },
+        "webhook": {
+          "windowMs": 60000,
+          "max": 100,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Webhook rate limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "webhookToken"
+        },
+        "websocket": {
+          "windowMs": 3600000,
+          "max": 10000,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "WebSocket connection limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "sessionId"
+        }
+      },
+      "production": {
+        "publicApi": {
+          "windowMs": 60000,
+          "max": 100,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Too many requests from this IP, please try again after a minute",
+          "skipFailedRequests": false,
+          "keyGenerator": "ip"
+        },
+        "internalApi": {
+          "windowMs": 60000,
+          "max": 1000,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Internal API rate limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "apiKey"
+        },
+        "webhook": {
+          "windowMs": 60000,
+          "max": 50,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "Webhook rate limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "webhookToken"
+        },
+        "websocket": {
+          "windowMs": 3600000,
+          "max": 5000,
+          "standardHeaders": true,
+          "legacyHeaders": false,
+          "message": "WebSocket connection limit exceeded",
+          "skipFailedRequests": false,
+          "keyGenerator": "sessionId"
+        }
+      }
+    }
+
+  routes-config.json: |
+    {
+      "apiVersion": "/api/v1",
+      "allowedRoles": ["admin", "manager", "user", "guest"],
+      "services": {
+        "auth": {
+          "path": "/auth",
+          "timeout": 5000,
+          "retries": 3,
+          "circuitBreaker": {
+            "failureThreshold": 5,
+            "resetTimeout": 30000
+          }
+        },
+        "tasks": {
+          "path": "/tasks",
+          "timeout": 10000,
+          "retries": 2,
+          "circuitBreaker": {
+            "failureThreshold": 3,
+            "resetTimeout": 20000
+          }
+        },
+        "projects": {
+          "path": "/projects",
+          "timeout": 10000,
+          "retries": 2,
+          "circuitBreaker": {
+            "failureThreshold": 3,
+            "resetTimeout": 20000
+          }
+        },
+        "notifications": {
+          "path": "/notifications",
+          "timeout": 5000,
+          "retries": 1,
+          "circuitBreaker": {
+            "failureThreshold": 5,
+            "resetTimeout": 15000
+          }
+        },
+        "files": {
+          "path": "/files",
+          "timeout": 15000,
+          "retries": 2,
+          "circuitBreaker": {
+            "failureThreshold": 3,
+            "resetTimeout": 30000
+          }
+        },
+        "health": {
+          "path": "/health",
+          "timeout": 2000,
+          "retries": 0
+        }
+      }
+    }
