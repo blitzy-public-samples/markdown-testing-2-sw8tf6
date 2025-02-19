@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: logging
+  labels:
+    app: fluentd
+    component: logging
+data:
+  fluent.conf: |
+    # Fluentd v1.16 Configuration for Kubernetes
+    # Base image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+
+    # System-wide configurations
+    <system>
+      log_level info
+      workers 4  # Optimize for multi-core systems
+    </system>
+
+    # Container Log Sources
+    <source>
+      @type tail
+      @id container_logs
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type kubernetes
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
+    </source>
+
+    # Docker Daemon Logs
+    <source>
+      @type tail
+      @id docker_logs
+      path /var/log/docker.log
+      pos_file /var/log/fluentd-docker.log.pos
+      tag docker.*
+      read_from_head true
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
+    </source>
+
+    # Kubernetes Metadata Filter
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id kubernetes_metadata_filter
+      kubernetes_url https://kubernetes.default.svc
+      cache_size 1000
+      watch true
+      merge_json_log true
+      preserve_json_log true
+    </filter>
+
+    # Add Cluster and Node Information
+    <filter kubernetes.**>
+      @type record_transformer
+      @id add_cluster_metadata
+      enable_ruby true
+      remove_keys stream
+      <record>
+        cluster_name "#{ENV['CLUSTER_NAME']}"
+        hostname "#{Socket.gethostname}"
+        tag ${tag}
+        time ${time}
+      </record>
+    </filter>
+
+    # Output Configuration for Elasticsearch
+    <match kubernetes.** docker.**>
+      @type elasticsearch
+      @id elasticsearch_output
+      host elasticsearch-service
+      port 9200
+      logstash_format true
+      logstash_prefix logstash
+      
+      # Index settings
+      index_name logstash
+      type_name fluentd
+      
+      # Buffer settings for performance
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/kubernetes.*.buffer
+        flush_mode interval
+        flush_interval 5s
+        flush_thread_count 4
+        chunk_limit_size 2M
+        queue_limit_length 32
+        retry_max_interval 30
+        retry_forever true
+        disable_retry_limit true
+      </buffer>
+
+      # Connection settings
+      reconnect_on_error true
+      reload_on_failure true
+      reload_connections false
+      request_timeout 30s
+
+      # Enable compression for better network performance
+      compression_level 6
+      
+      <security>
+        self_signed_cert false
+      </security>
+    </match>
+
+    # Error handling
+    <label @ERROR>
+      <match **>
+        @type file
+        path /var/log/fluentd/error.log
+        append true
+        <buffer>
+          @type file
+          path /var/log/fluentd-buffers/error.*.buffer
+          flush_interval 5s
+        </buffer>
+      </match>
+    </label>
