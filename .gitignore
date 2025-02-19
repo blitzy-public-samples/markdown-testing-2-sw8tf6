@@ -1,0 +1,103 @@
+# Node.js Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+.npm/
+.yarn/
+.pnpm/
+
+# Build and Compilation Outputs
+dist/
+build/
+*.tsbuildinfo
+.next/
+out/
+.nuxt/
+.output/
+coverage/
+storybook-static/
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+.env.development
+.env.staging
+.env.production
+!.env.example
+*.pem
+*.key
+*.crt
+*.ca-bundle
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Testing and Coverage
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+cypress/videos/
+cypress/screenshots/
+*.spec.js.snap
+__snapshots__/
+
+# Logs and Debugging
+logs/
+*.log
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Infrastructure and Deployment
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraformrc
+terraform.rc
+kubeconfig
+*.kubeconfig
+k8s-secrets/
+.dockerignore
+docker-compose.override.yml
+*.docker.env
+
+# Temporary and Cache Files
+tmp/
+temp/
+*.tmp
+.cache/
+.eslintcache
+.stylelintcache
+*.swp
+*.bak
+*.backup
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
