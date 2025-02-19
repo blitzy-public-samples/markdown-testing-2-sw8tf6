@@ -1,0 +1,69 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-service
+  namespace: production
+  labels:
+    app: notification-service
+    component: backend
+    part-of: task-management
+    managed-by: kubernetes
+    scaling-policy: auto
+    criticality: high
+  annotations:
+    scaling.kubernetes.io/behavior: optimize-availability
+    monitoring.kubernetes.io/enable: "true"
+    description: "HPA for notification service with enhanced scaling policies"
+    last-updated: "2024-01-01"
+    owner: "platform-team"
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-service
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+    # CPU-based scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  behavior:
+    # Scale up behavior with aggressive initial response
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      selectPolicy: Max
+
+    # Scale down behavior with conservative approach
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+      - type: Percent
+        value: 20
+        periodSeconds: 180
+      selectPolicy: Min
