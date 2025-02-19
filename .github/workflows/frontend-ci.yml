@@ -1,0 +1,170 @@
+name: Frontend CI
+
+on:
+  push:
+    paths:
+      - 'src/web/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    paths:
+      - 'src/web/**'
+      - '.github/workflows/frontend-ci.yml'
+
+env:
+  NODE_VERSION: '20.x'
+  COVERAGE_THRESHOLD: 80
+  BUNDLE_SIZE_LIMIT: '250kb'
+  WORKING_DIRECTORY: src/web
+
+jobs:
+  quality:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/node_modules
+            ~/.npm
+            ${{ env.WORKING_DIRECTORY }}/.vite
+            ${{ env.WORKING_DIRECTORY }}/coverage
+          key: npm-deps-${{ hashFiles('src/web/package-lock.json', 'src/web/tsconfig.json') }}
+          restore-keys: |
+            npm-deps-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Validate package.json
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm audit
+
+      - name: Run ESLint
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run lint
+        
+      - name: Check code formatting
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run format -- --check
+
+      - name: Type check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run type-check
+
+      - name: Run tests with coverage
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run test:coverage
+        
+      - name: Validate coverage threshold
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+          if (( $(echo "$COVERAGE < ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "Coverage $COVERAGE% is below threshold of ${{ env.COVERAGE_THRESHOLD }}%"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ${{ env.WORKING_DIRECTORY }}/coverage
+          flags: frontend
+          fail_ci_if_error: true
+
+      - name: Check bundle size
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run build
+          BUNDLE_SIZE=$(du -b dist/assets/*.js | sort -n -r | head -n1 | cut -f1)
+          LIMIT_BYTES=$(echo "${{ env.BUNDLE_SIZE_LIMIT }}" | numfmt --from=si)
+          if [ "$BUNDLE_SIZE" -gt "$LIMIT_BYTES" ]; then
+            echo "Bundle size ${BUNDLE_SIZE}B exceeds limit of ${{ env.BUNDLE_SIZE_LIMIT }}"
+            exit 1
+          fi
+
+  build:
+    name: Production Build
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/node_modules
+            ~/.npm
+            ${{ env.WORKING_DIRECTORY }}/.vite
+          key: npm-deps-${{ hashFiles('src/web/package-lock.json', 'src/web/tsconfig.json') }}
+          restore-keys: |
+            npm-deps-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Build application
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run build
+          echo "BUILD_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      - name: Generate build report
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          {
+            echo '{'
+            echo '  "buildTime": "'$BUILD_TIME'",'
+            echo '  "buildSize": "'$(du -sh dist | cut -f1)'",'
+            echo '  "nodeVersion": "'${{ env.NODE_VERSION }}'",'
+            echo '  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"'
+            echo '}'
+          } > build-report.json
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/dist
+            ${{ env.WORKING_DIRECTORY }}/build-report.json
+          retention-days: 7
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Frontend CI pipeline failed. Check the logs for details."
+          exit 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
