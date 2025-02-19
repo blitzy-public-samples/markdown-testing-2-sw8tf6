@@ -1,0 +1,196 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  security_scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=task-management-system
+            -Dsonar.sources=src
+            -Dsonar.tests=src/**/*.test.ts,src/**/*.spec.ts
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/tests/**
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/scan@v3
+        with:
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+
+      - name: Scan Container Images
+        uses: aquasecurity/trivy-action@v1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  build_backend:
+    name: Build Backend
+    needs: security_scan
+    uses: ./.github/workflows/backend-ci.yml
+
+  build_frontend:
+    name: Build Frontend
+    needs: security_scan
+    uses: ./.github/workflows/frontend-ci.yml
+
+  build_images:
+    name: Build and Push Images
+    needs: [build_backend, build_frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-dist
+          path: src/backend/dist
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: src/web/dist
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: src/backend
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/backend:${{ github.event.release.tag_name }}
+            ${{ env.DOCKER_REGISTRY }}/backend:latest
+          cache-from: type=registry,ref=${{ env.DOCKER_REGISTRY }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_REGISTRY }}/backend:buildcache,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: src/web
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/frontend:${{ github.event.release.tag_name }}
+            ${{ env.DOCKER_REGISTRY }}/frontend:latest
+          cache-from: type=registry,ref=${{ env.DOCKER_REGISTRY }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_REGISTRY }}/frontend:buildcache,mode=max
+
+  deploy:
+    name: Deploy to Production
+    needs: build_images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        run: |
+          echo "${{ env.KUBE_CONFIG }}" | base64 -d > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+
+      - name: Update Kubernetes manifests
+        run: |
+          sed -i "s|image: .*backend:.*|image: ${{ env.DOCKER_REGISTRY }}/backend:${{ github.event.release.tag_name }}|g" k8s/backend-deployment.yaml
+          sed -i "s|image: .*frontend:.*|image: ${{ env.DOCKER_REGISTRY }}/frontend:${{ github.event.release.tag_name }}|g" k8s/frontend-deployment.yaml
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/backend -n production
+          kubectl rollout status deployment/frontend -n production
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for services to be ready..."
+          kubectl wait --for=condition=available deployment/backend -n production --timeout=300s
+          kubectl wait --for=condition=available deployment/frontend -n production --timeout=300s
+          
+          # Check pod health
+          kubectl get pods -n production -l app=backend --no-headers | awk '$3=="Running" {print}' | wc -l | grep -q 2
+          kubectl get pods -n production -l app=frontend --no-headers | awk '$3=="Running" {print}' | wc -l | grep -q 2
+
+      - name: Run Integration Tests
+        run: |
+          npm install -g newman
+          newman run tests/postman/production-suite.json \
+            --environment tests/postman/production-env.json \
+            --reporters cli,junit \
+            --reporter-junit-export test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: test-results.xml
+          retention-days: 30
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "🚀 Successfully deployed version ${{ github.event.release.tag_name }} to production!"
+            }'
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          kubectl rollout undo deployment/backend -n production
+          kubectl rollout undo deployment/frontend -n production
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "⚠️ Deployment failed! Rolled back to previous version."
+            }'
+
+concurrency:
+  group: release
+  cancel-in-progress: false
