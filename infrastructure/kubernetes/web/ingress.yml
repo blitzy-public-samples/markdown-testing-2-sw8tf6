@@ -1,0 +1,66 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: web-frontend
+  namespace: production
+  labels:
+    app: task-management
+    component: web
+    environment: production
+    version: 1.0.0
+    tier: frontend
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '80'
+    prometheus.io/path: '/metrics'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    monitoring.istio.io/port: '80'
+    sidecar.istio.io/inject: 'true'
+spec:
+  hosts:
+    - "app.taskmanagement.com"
+  gateways:
+    - istio-system/task-management-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/"
+      route:
+        - destination:
+            host: web
+            port:
+              number: 80
+            subset: v1
+          weight: 100
+          headers:
+            request:
+              set:
+                X-Frame-Options: "DENY"
+                X-Content-Type-Options: "nosniff"
+                Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+                X-XSS-Protection: "1; mode=block"
+                Referrer-Policy: "strict-origin-when-cross-origin"
+                Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.taskmanagement.com wss://ws.taskmanagement.com"
+      timeout: "30s"
+      retries:
+        attempts: 3
+        perTryTimeout: "2s"
+        retryOn: "connect-failure,refused-stream,unavailable,5xx"
+      fault:
+        delay:
+          percentage:
+            value: 0.1
+          fixedDelay: "5s"
+      corsPolicy:
+        allowOrigins:
+          - exact: "https://app.taskmanagement.com"
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Content-Type
+        maxAge: "24h"
