@@ -1,0 +1,51 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: task-management-gateway
+  namespace: istio-system
+  labels:
+    app: task-management
+    component: ingress
+    part-of: task-management-system
+    version: 1.0.0
+    managed-by: istio
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '15020'
+    prometheus.io/path: '/stats/prometheus'
+
+spec:
+  selector:
+    istio: ingressgateway
+    app: istio-ingressgateway
+    topology.istio.io/network: network1
+
+  servers:
+    # HTTPS configuration
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - api.taskmanagement.com
+        - app.taskmanagement.com
+        - ws.taskmanagement.com
+      tls:
+        mode: SIMPLE
+        credentialName: task-management-tls
+        minProtocolVersion: TLSV1_3
+        cipherSuites:
+          - ECDHE-ECDSA-AES256-GCM-SHA384
+          - ECDHE-RSA-AES256-GCM-SHA384
+
+    # HTTP configuration with automatic HTTPS redirect
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - api.taskmanagement.com
+        - app.taskmanagement.com
+        - ws.taskmanagement.com
+      tls:
+        httpsRedirect: true
