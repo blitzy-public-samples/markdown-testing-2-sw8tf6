@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: logging
+  labels:
+    app: fluentd
+    component: logging
+    version: v1.16
+    part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        version: v1.16
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '24231'
+    spec:
+      serviceAccount: fluentd
+      # Allow scheduling on master/control-plane nodes
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      containers:
+        - name: fluentd
+          # fluent/fluentd-kubernetes-daemonset v1.16-debian-elasticsearch7-1
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+          env:
+            - name: FLUENT_ELASTICSEARCH_HOST
+              value: elasticsearch-service
+            - name: FLUENT_ELASTICSEARCH_PORT
+              value: '9200'
+            - name: FLUENT_ELASTICSEARCH_SCHEME
+              value: 'http'
+            - name: FLUENTD_SYSTEMD_CONF
+              value: 'disable'
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: config
+              mountPath: /fluentd/etc
+          ports:
+            - containerPort: 24231
+              name: prometheus
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 24231
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: config
+          configMap:
+            name: fluentd-config
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
