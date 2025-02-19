@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: ${NAMESPACE}
+  labels:
+    app: web
+    component: frontend
+    managed-by: terraform
+    version: "1.0.0"
+data:
+  # API Configuration
+  VITE_API_BASE_URL: "http://api-gateway-service:3000"
+  VITE_API_VERSION: "1.0.0"
+  VITE_API_TIMEOUT: "2000"  # 2 seconds as per performance requirements
+  VITE_API_RETRY_MAX: "3"
+  VITE_API_RETRY_DELAY: "1000"
+  VITE_API_RETRY_BACKOFF_MULTIPLIER: "2"
+  VITE_API_RETRY_MAX_BACKOFF: "10000"
+  VITE_API_CACHE_MAX_AGE: "300000"  # 5 minutes
+  
+  # WebSocket Configuration
+  VITE_WS_URL: "ws://notification-service:3002"
+  VITE_WS_PATH: "/ws"
+  VITE_WS_RECONNECT_ATTEMPTS: "5"
+  VITE_WS_RECONNECT_DELAY: "1000"
+  VITE_WS_RECONNECT_DELAY_MAX: "5000"
+  VITE_WS_TIMEOUT: "10000"
+  VITE_WS_AUTO_CONNECT: "false"
+  
+  # Authentication Configuration
+  VITE_AUTH_SESSION_TIMEOUT: "1800"  # 30 minutes
+  VITE_AUTH_TOKEN_REFRESH_THRESHOLD: "300"  # 5 minutes
+  VITE_AUTH_MFA_ENABLED: "true"
+  VITE_AUTH_MAX_LOGIN_ATTEMPTS: "5"
+  
+  # Rate Limiting Configuration
+  VITE_RATE_LIMIT_REQUESTS: "100"
+  VITE_RATE_LIMIT_WINDOW: "60000"  # 1 minute
+  
+  # Security Headers
+  VITE_SECURITY_HEADERS_ENABLED: "true"
+  VITE_REQUEST_SIGNING_ENABLED: "true"
+  VITE_REQUEST_ENCRYPTION_ENABLED: "true"
+  
+  # Feature Flags
+  VITE_FEATURE_CACHE_ENABLED: "true"
+  VITE_FEATURE_MFA_ENFORCEMENT: "risk-based"
+  VITE_FEATURE_AUDIT_LOGGING: "true"
+  
+  # Error Handling
+  VITE_ERROR_DISPLAY_DURATION: "5000"  # 5 seconds
+  
+  # Performance Configuration
+  VITE_PERFORMANCE_CACHE_ENABLED: "true"
+  VITE_PERFORMANCE_COMPRESSION_ENABLED: "true"
+  VITE_PERFORMANCE_REQUEST_TIMEOUT: "2000"  # 2 seconds per requirements
+  
+  # Monitoring and Logging
+  VITE_MONITORING_ENABLED: "true"
+  VITE_LOGGING_LEVEL: "error"
+  VITE_METRICS_ENABLED: "true"
