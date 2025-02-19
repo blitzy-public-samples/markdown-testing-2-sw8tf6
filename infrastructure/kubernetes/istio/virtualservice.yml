@@ -1,0 +1,125 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: task-management-vs
+  namespace: istio-system
+  labels:
+    app: task-management
+    component: routing
+    version: v1
+    managed-by: istio
+  annotations:
+    monitoring.istio.io/enabled: 'true'
+    retry.istio.io/enabled: 'true'
+    timeout.istio.io/enabled: 'true'
+
+spec:
+  hosts:
+    - api.taskmanagement.com
+    - app.taskmanagement.com
+    - ws.taskmanagement.com
+  gateways:
+    - task-management-gateway
+  http:
+    # API Gateway Routes
+    - match:
+        - uri:
+            prefix: /api/v1
+          headers:
+            host:
+              exact: api.taskmanagement.com
+      route:
+        - destination:
+            host: api-gateway
+            port:
+              number: 80
+          timeout: 5s
+          retries:
+            attempts: 3
+            perTryTimeout: 2s
+            retryOn: connect-failure,refused-stream,unavailable,cancelled,resource-exhausted
+      corsPolicy:
+        allowOrigins:
+          - exact: https://app.taskmanagement.com
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Content-Type
+        maxAge: 24h
+        allowCredentials: true
+
+    # WebSocket Routes for Real-time Updates
+    - match:
+        - uri:
+            prefix: /ws
+          headers:
+            host:
+              exact: ws.taskmanagement.com
+      route:
+        - destination:
+            host: notification-service
+            port:
+              number: 80
+          timeout: 30s
+          websocketUpgrade: true
+      corsPolicy:
+        allowOrigins:
+          - exact: https://app.taskmanagement.com
+        allowMethods:
+          - GET
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Sec-WebSocket-Protocol
+          - Sec-WebSocket-Version
+          - Sec-WebSocket-Key
+        maxAge: 24h
+        allowCredentials: true
+
+    # Web Application Routes
+    - match:
+        - uri:
+            prefix: /
+          headers:
+            host:
+              exact: app.taskmanagement.com
+      route:
+        - destination:
+            host: frontend-service
+            port:
+              number: 80
+          timeout: 10s
+      corsPolicy:
+        allowOrigins:
+          - exact: https://app.taskmanagement.com
+        allowMethods:
+          - GET
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Content-Type
+        maxAge: 24h
+        allowCredentials: true
+
+  # Circuit Breaker and Outlier Detection
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30ms
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+        http2MaxRequests: 1000
+        maxRetries: 3
