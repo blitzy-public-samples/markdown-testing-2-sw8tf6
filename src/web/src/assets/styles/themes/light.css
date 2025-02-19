@@ -1,0 +1,145 @@
+/**
+ * Light Theme - Task Management System
+ * Version: 1.0.0
+ * WCAG 2.1 AA Compliant
+ * Supports: Mobile-first responsive design
+ */
+
+@import '../variables.css';
+
+:root {
+  /* Primary Colors
+   * Base: Blue - Accessible contrast ratio > 4.5:1
+   */
+  --primary-color: #2563eb;
+  --primary-color-light: #3b82f6;
+  --primary-color-dark: #1d4ed8;
+  --primary-color-hover: #1e40af;
+  --primary-color-active: #1e3a8a;
+  --primary-color-focus: #3b82f6;
+
+  /* Secondary Colors
+   * Base: Slate - Neutral palette for UI elements
+   */
+  --secondary-color: #64748b;
+  --secondary-color-light: #94a3b8;
+  --secondary-color-dark: #475569;
+  --secondary-color-hover: #475569;
+  --secondary-color-active: #334155;
+
+  /* Status Colors
+   * Semantic colors for feedback and states
+   */
+  --success-color: #16a34a;
+  --success-color-light: #22c55e;
+  --success-color-dark: #15803d;
+  --success-background: #f0fdf4;
+
+  --warning-color: #ca8a04;
+  --warning-color-light: #eab308;
+  --warning-color-dark: #a16207;
+  --warning-background: #fefce8;
+
+  --error-color: #dc2626;
+  --error-color-light: #ef4444;
+  --error-color-dark: #b91c1c;
+  --error-background: #fef2f2;
+
+  --info-color: #0891b2;
+  --info-color-light: #06b6d4;
+  --info-color-dark: #0e7490;
+  --info-background: #f0f9ff;
+
+  /* Background Colors
+   * Three-layer system for visual hierarchy
+   */
+  --background-primary: #ffffff;
+  --background-secondary: #f8fafc;
+  --background-tertiary: #f1f5f9;
+  --background-hover: #f8fafc;
+  --background-active: #e2e8f0;
+
+  /* Text Colors
+   * High contrast ratios for readability
+   */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #64748b;
+  --text-disabled: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Border Colors
+   * Subtle boundaries and focus states
+   */
+  --border-color: #e2e8f0;
+  --border-color-hover: #cbd5e1;
+  --border-color-focus: #3b82f6;
+  --border-color-error: #dc2626;
+
+  /* Shadows
+   * Elevation system with smooth gradients
+   */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-focus: 0 0 0 3px rgb(59 130 246 / 0.5);
+
+  /* Overlay Colors
+   * Semi-transparent layers for modals and dialogs
+   */
+  --overlay-color: rgb(0 0 0 / 0.4);
+  --overlay-color-light: rgb(0 0 0 / 0.2);
+
+  /* Scrollbar Customization
+   * Subtle, accessible scrollbar styling
+   */
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--border-radius-full);
+  border: 2px solid var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* High Contrast Mode Adjustments */
+@media (forced-colors: active) {
+  :root {
+    --primary-color: CanvasText;
+    --primary-color-light: CanvasText;
+    --primary-color-dark: CanvasText;
+    --border-color: CanvasText;
+    --text-primary: CanvasText;
+    --text-secondary: CanvasText;
+    --background-primary: Canvas;
+    --background-secondary: Canvas;
+    --background-tertiary: Canvas;
+  }
+}
+
+/* Print Mode Optimizations */
+@media print {
+  :root {
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --background-secondary: #ffffff;
+    --background-tertiary: #ffffff;
+  }
+}
