@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-service
+  namespace: ${ENV}  # Will be replaced with production/staging/development
+  labels:
+    app: file-service
+    component: service
+    tier: backend
+    part-of: task-management-system
+    managed-by: kubernetes
+    environment: ${ENV}
+    version: v1
+  annotations:
+    # Prometheus monitoring configuration
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3003"
+    # AWS load balancer configuration for internal access only
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    # Service description and documentation
+    service.kubernetes.io/description: "File Service API for document management and storage"
+    service.kubernetes.io/owner: "platform-team"
+    # Security and compliance annotations
+    security.kubernetes.io/tls-enabled: "true"
+    security.kubernetes.io/network-restricted: "true"
+
+spec:
+  # Using ClusterIP for secure internal access
+  type: ClusterIP
+  
+  # Port configuration for service access
+  ports:
+    - name: http
+      port: 3003
+      targetPort: 3003
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    - name: health
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+
+  # Pod selector configuration with multiple criteria
+  selector:
+    app: file-service
+    component: service
+    tier: backend
+
+  # Session affinity configuration for consistent routing
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hour timeout for long-running operations
+
+  # Internal traffic policy for enhanced security
+  internalTrafficPolicy: Local
+
+  # Publishing not ready addresses configuration
+  publishNotReadyAddresses: false
+
+  # IP family policy configuration
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
