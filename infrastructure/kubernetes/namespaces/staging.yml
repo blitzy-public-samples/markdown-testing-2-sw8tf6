@@ -1,0 +1,55 @@
+# Kubernetes Namespace configuration for Task Management System staging environment
+# Version: v1.0.0
+# Purpose: Defines staging environment namespace with comprehensive security and monitoring controls
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    name: staging
+    environment: staging
+    app: task-management-system
+    istio-injection: enabled
+    monitoring: enabled
+    network-policy: enabled
+    backup: enabled
+    compliance: enabled
+    tier: staging
+    version: 1.0.0
+    component: namespace
+  annotations:
+    # Scheduling and Node Selection
+    scheduler.alpha.kubernetes.io/node-selector: environment=staging
+    
+    # Network Policies
+    net.beta.kubernetes.io/network-policy: default-deny
+    
+    # Service Mesh Integration
+    linkerd.io/inject: enabled
+    sidecar.istio.io/rewriteAppHTTPProbers: true
+    
+    # Monitoring Configuration
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    
+    # Backup Configuration
+    backup.velero.io/backup-volumes: "true"
+    
+    # Release Management
+    meta.helm.sh/release-namespace: staging
+    
+    # Secrets Management
+    vault.hashicorp.com/agent-inject: "true"
+    
+    # Environment Metadata
+    environment: staging
+    app: task-management-system
+    description: Staging namespace for integration testing
+    owner: platform-team
+    security-tier: restricted
+    compliance-level: high
+
+spec:
+  finalizers:
+    - kubernetes
