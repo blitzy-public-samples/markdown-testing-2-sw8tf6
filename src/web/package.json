@@ -29,7 +29,7 @@
     "@reduxjs/toolkit": "^1.9.5",
     "@sentry/browser": "^7.0.0",
     "@tanstack/react-intersection-observer": "^3.0.0",
-    "@tanstack/react-query": "^4.0.0",
+    "@tanstack/react-query": "^5.66.7",
     "@tanstack/react-virtual": "3.x",
     "axios": "^1.6.0",
     "axios-retry": "^3.5.0",
