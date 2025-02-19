@@ -1,0 +1,45 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: file-service-hpa
+  namespace: ${NAMESPACE}  # Will be replaced with production/staging/development
+  labels:
+    app: file-service
+    component: hpa
+    tier: backend
+    part-of: task-management-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: file-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+  behavior:
+    scaleUp:
+      # Quick response to load increases
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 2  # Add up to 2 pods at a time
+        periodSeconds: 60
+    scaleDown:
+      # Conservative scale down to prevent thrashing
+      stabilizationWindowSeconds: 300  # 5-minute window
+      policies:
+      - type: Pods
+        value: 1  # Remove only 1 pod at a time
+        periodSeconds: 120  # Every 2 minutes
