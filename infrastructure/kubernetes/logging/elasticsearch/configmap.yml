@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-configmap
+  namespace: logging
+  labels:
+    app: elasticsearch
+    component: logging
+    part-of: logging-stack
+data:
+  elasticsearch.yml: |
+    # Elasticsearch 7.17.0 Configuration
+    
+    # Cluster Settings
+    cluster:
+      name: elk-cluster
+      initial_master_nodes:
+        - elasticsearch-0
+      routing:
+        allocation:
+          node_concurrent_recoveries: 2
+          disk:
+            threshold_enabled: true
+            watermark:
+              low: "85%"
+              high: "90%"
+              flood_stage: "95%"
+
+    # Node Configuration
+    node:
+      name: ${HOSTNAME}
+      master: true
+      data: true
+      ingest: true
+      max_local_storage_nodes: 1
+      attr:
+        zone: ${ZONE}
+
+    # Network Settings
+    network:
+      host: 0.0.0.0
+      publish_host: ${HOSTNAME}
+      tcp:
+        compress: true
+        keep_alive: true
+        keep_alive_interval: 60s
+
+    # HTTP Settings
+    http:
+      port: 9200
+      compression: true
+      cors:
+        enabled: true
+        allow-origin: "http://monitoring-kibana:5601"
+      max_content_length: 100mb
+
+    # Transport Settings
+    transport:
+      port: 9300
+      tcp:
+        compress: true
+
+    # Discovery Configuration
+    discovery:
+      seed_hosts:
+        - elasticsearch-service
+      zen:
+        minimum_master_nodes: 1
+        ping_timeout: 5s
+        join_timeout: 10s
+
+    # Bootstrap Settings
+    bootstrap:
+      memory_lock: true
+      system_call_filter: true
+
+    # X-Pack Features
+    xpack:
+      security:
+        enabled: false
+      monitoring:
+        enabled: true
+        collection:
+          enabled: true
+          interval: 10s
+
+    # Index Settings
+    indices:
+      recovery:
+        max_bytes_per_sec: 50mb
+        concurrent_streams: 4
+      memory:
+        index_buffer_size: "10%"
+      fielddata:
+        cache:
+          size: "20%"
+      queries:
+        cache:
+          size: "10%"
+
+    # Thread Pool Settings
+    thread_pool:
+      write:
+        size: 4
+        queue_size: 1000
+      search:
+        size: 8
+        queue_size: 1000
+      get:
+        size: 4
+        queue_size: 1000
+      bulk:
+        size: 4
+        queue_size: 500
