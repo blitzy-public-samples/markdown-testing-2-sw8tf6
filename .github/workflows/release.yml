@@ -96,7 +96,7 @@ jobs:
           path: src/web/dist
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: src/backend
           push: true
@@ -107,7 +107,7 @@ jobs:
           cache-to: type=registry,ref=${{ env.DOCKER_REGISTRY }}/backend:buildcache,mode=max
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: src/web
           push: true
