@@ -1,0 +1,76 @@
+# This file defines code ownership and required reviewers for different parts of the system
+# Format: pattern    @owner1 @owner2
+
+# Default owners for any file not matched below
+*    @project-leads
+
+# Backend service ownership
+src/backend/    @backend-team @architects
+
+# Frontend application ownership
+src/web/    @frontend-team @architects
+
+# Authentication service - requires security team review
+src/backend/src/auth-service/    @security-team @backend-team
+
+# Interface definitions - architect review required
+src/backend/src/*/interfaces/    @architects
+
+# Infrastructure code ownership
+infrastructure/    @devops-team @architects
+
+# Kubernetes configuration files
+infrastructure/kubernetes/    @k8s-admins @devops-team
+
+# Terraform configuration files
+infrastructure/terraform/    @infrastructure-admins @devops-team
+
+# CI/CD workflow files
+.github/workflows/    @devops-team
+
+# Test files ownership
+src/*/tests/    @qa-team
+
+# Documentation files
+docs/    @project-leads @architects
+
+# Security-critical paths require security team review
+src/backend/src/*/security/    @security-team
+src/backend/src/*/auth/    @security-team
+src/backend/src/*/encryption/    @security-team
+
+# Database schema changes require architect and DBA review
+src/backend/src/*/db/migrations/    @architects @dba-team
+
+# API specifications require architect review
+src/backend/src/*/api/    @architects @backend-team
+
+# Shared utilities and core libraries
+src/shared/    @architects @backend-team
+
+# Configuration files
+*.config.js    @devops-team
+*.config.ts    @devops-team
+*.yaml    @devops-team
+*.yml    @devops-team
+
+# Package dependencies
+package.json    @security-team @devops-team
+package-lock.json    @security-team @devops-team
+yarn.lock    @security-team @devops-team
+
+# Environment configurations
+.env.example    @devops-team @security-team
+src/*/config/    @devops-team @security-team
+
+# Performance-critical components
+src/backend/src/*/performance/    @architects @backend-team
+src/web/src/components/performance/    @architects @frontend-team
+
+# Monitoring and observability
+src/backend/src/*/monitoring/    @devops-team
+infrastructure/monitoring/    @devops-team
+
+# Security policies and configurations
+security/    @security-team
+.github/security/    @security-team
