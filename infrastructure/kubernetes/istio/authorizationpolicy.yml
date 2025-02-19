@@ -1,0 +1,116 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: task-management-authz
+  namespace: istio-system
+  labels:
+    app: task-management
+    component: security
+    version: v1
+    managed-by: istio
+    security-tier: critical
+  annotations:
+    security.istio.io/last-reviewed: "2024-01-01"
+    policy.istio.io/check: "true"
+    monitoring.istio.io/enabled: "true"
+
+spec:
+  selector:
+    matchLabels:
+      app: task-management
+
+  rules:
+    # API Gateway access rules
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/api-gateway"]
+            namespaces: ["istio-system", "production"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+            paths: ["/api/v1/*"]
+            ports: ["8080", "8443"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["https://taskmanagement.com"]
+        - key: request.auth.claims[exp]
+          values: ["true"]
+        - key: request.auth.claims[scope]
+          values: ["api:access"]
+
+    # WebSocket/Notification Service access rules
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/notification-service"]
+            namespaces: ["istio-system", "production"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/ws/*"]
+            ports: ["8080"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["https://taskmanagement.com"]
+        - key: request.auth.claims[scope]
+          values: ["websocket:access"]
+
+    # Task Service access rules
+    - from:
+        - source:
+            principals: ["cluster.local/ns/production/sa/task-service"]
+            namespaces: ["production"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+            paths: ["/tasks/*"]
+            ports: ["8080"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["https://taskmanagement.com"]
+        - key: request.auth.claims[scope]
+          values: ["task:access"]
+
+    # Project Service access rules
+    - from:
+        - source:
+            principals: ["cluster.local/ns/production/sa/project-service"]
+            namespaces: ["production"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+            paths: ["/projects/*"]
+            ports: ["8080"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["https://taskmanagement.com"]
+        - key: request.auth.claims[scope]
+          values: ["project:access"]
+
+    # File Service access rules
+    - from:
+        - source:
+            principals: ["cluster.local/ns/production/sa/file-service"]
+            namespaces: ["production"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "DELETE"]
+            paths: ["/files/*"]
+            ports: ["8080"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["https://taskmanagement.com"]
+        - key: request.auth.claims[scope]
+          values: ["file:access"]
+
+    # Health check and metrics endpoints
+    - from:
+        - source:
+            namespaces: ["istio-system", "monitoring"]
+      to:
+        - operation:
+            methods: ["GET"]
+            paths: ["/health", "/metrics"]
+            ports: ["8080"]
+
+  # Default deny all other traffic
+  action: DENY
