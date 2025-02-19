@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: logging
+  labels:
+    app: kibana
+    component: logging
+    tier: visualization
+  annotations:
+    # Monitoring annotations for Prometheus metrics collection
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5601"
+    # Service description
+    app.kubernetes.io/name: "kibana"
+    app.kubernetes.io/component: "visualization"
+    app.kubernetes.io/part-of: "logging-stack"
+
+spec:
+  # Use ClusterIP for internal access within the cluster
+  type: ClusterIP
+  
+  # Select Kibana pods using app and component labels
+  selector:
+    app: kibana
+    component: logging
+  
+  # Define the HTTP port for Kibana web interface
+  ports:
+    - name: http
+      port: 5601           # Service port
+      targetPort: 5601     # Container port (matches kibana.yml configuration)
+      protocol: TCP
+  
+  # Disable session affinity as Kibana is stateless
+  sessionAffinity: None
+  
+  # Publishing not required as using ClusterIP
+  publishNotReadyAddresses: false
