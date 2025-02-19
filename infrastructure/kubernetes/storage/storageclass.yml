@@ -1,0 +1,24 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+    kubernetes.io/description: "AWS EBS storage class for task management system with gp3 volumes"
+
+provisioner: ebs.csi.aws.com
+
+parameters:
+  type: gp3                # AWS EBS volume type optimized for cost and performance
+  encrypted: "true"        # Enable encryption at rest for data security
+  fsType: ext4            # Linux filesystem type for volumes
+  iops: "3000"            # Baseline IOPS for gp3 volumes
+  throughput: "125"       # Throughput in MiB/s for gp3 volumes
+  kmsKeyId: ""           # Optional: Custom KMS key for encryption
+  tagSpecification: "environment=production,app=task-management"
+
+reclaimPolicy: Retain     # Preserve volumes when PVCs are deleted
+
+volumeBindingMode: WaitForFirstConsumer  # Delay volume binding until pod scheduling
+
+allowVolumeExpansion: true  # Enable volume resizing capability
