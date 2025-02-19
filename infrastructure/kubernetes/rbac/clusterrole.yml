@@ -1,0 +1,81 @@
+# apiVersion: rbac.authorization.k8s.io/v1 (Kubernetes RBAC API v1)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: task-management-system-role
+  labels:
+    app: task-management-system
+    component: rbac
+    version: v1
+    managed-by: manual
+    environment: production
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+    security.kubernetes.io/last-reviewed: "2024-01-01"
+    description: "RBAC permissions for Task Management System microservices"
+    owner: "platform-team"
+
+rules:
+  # Core API permissions for service discovery and configuration
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services 
+      - endpoints
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Workload permissions for deployment management
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Autoscaling permissions for HPA
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Monitoring permissions for Prometheus integration
+  - apiGroups: ["monitoring.coreos.com"]
+    resources:
+      - servicemonitors
+      - podmonitors
+      - prometheusrules
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+
+  # Service mesh permissions for Istio
+  - apiGroups: ["networking.istio.io"]
+    resources:
+      - virtualservices
+      - destinationrules
+      - serviceentries
+      - gateways
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Security policy permissions
+  - apiGroups: ["policy"]
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
