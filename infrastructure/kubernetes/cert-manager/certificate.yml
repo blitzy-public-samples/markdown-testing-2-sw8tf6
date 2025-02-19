@@ -1,0 +1,59 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: task-management-tls
+  namespace: istio-system
+  labels:
+    app: task-management
+    component: certificate
+    environment: production
+    managed-by: cert-manager
+    security-tier: frontend
+spec:
+  # Name of the secret that will store the generated certificate
+  secretName: task-management-tls
+  
+  # Certificate validity duration (90 days)
+  duration: 2160h
+  
+  # Start renewal process 15 days before expiry
+  renewBefore: 360h
+  
+  # Certificate subject information
+  subject:
+    organizations:
+      - Task Management System
+    organizationalUnits:
+      - Security Operations
+    countries:
+      - US
+    localities:
+      - Production Environment
+  
+  # Domain configuration
+  commonName: taskmanagement.com
+  dnsNames:
+    - api.taskmanagement.com
+    - app.taskmanagement.com
+    - ws.taskmanagement.com
+    - "*.taskmanagement.com"
+  
+  # Reference to the Let's Encrypt production issuer
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  # Certificate usage purposes
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  
+  # Private key configuration
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS1
+    rotationPolicy: Always
