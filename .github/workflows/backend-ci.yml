@@ -78,7 +78,7 @@ jobs:
           category: "/language:javascript"
 
       - name: Cache build artifacts
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.WORKING_DIRECTORY }}/dist
