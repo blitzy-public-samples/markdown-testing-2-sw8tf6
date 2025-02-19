@@ -1,0 +1,243 @@
+/* Global Styles - Task Management System
+ * Version: 1.0.0
+ * Dependencies:
+ * - normalize.css@8.0.1
+ * - variables.css
+ * - light.css
+ * - dark.css
+ */
+
+/* Import external dependencies */
+@import 'normalize.css';
+
+/* Import internal design system */
+@import './variables.css';
+@import './themes/light.css';
+@import './themes/dark.css';
+
+/* Base Reset & Box Model
+ * Consistent box-sizing and base styles
+ */
+*, *::before, *::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+  contain: style layout paint;
+}
+
+/* Root Element Configuration
+ * Base font size and smoothing
+ */
+html {
+  box-sizing: border-box;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+  content-visibility: auto;
+  scroll-behavior: smooth;
+}
+
+/* Body Base Styles
+ * Core typography and colors
+ */
+body {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background-color: var(--background-primary);
+  contain: content;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Container Classes
+ * Responsive layout containers with container queries
+ */
+.container {
+  width: 100%;
+  max-width: var(--breakpoint-xl);
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  container-type: inline-size;
+}
+
+@container (min-width: 640px) {
+  .container {
+    padding: 0 var(--spacing-lg);
+  }
+}
+
+/* Accessibility Classes
+ * Screen reader and keyboard navigation support
+ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
+}
+
+.skip-to-main {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: var(--z-index-tooltip);
+  background: var(--background-primary);
+  padding: var(--spacing-md);
+  transition: top var(--transition-fast);
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Focus Management
+ * Enhanced keyboard focus styles
+ */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Typography Utilities
+ * Fluid typography with clamp()
+ */
+.text-h1 {
+  font-size: clamp(var(--font-size-2xl), 5vw, var(--font-size-4xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.text-h2 {
+  font-size: clamp(var(--font-size-xl), 4vw, var(--font-size-3xl));
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+/* Layout Utilities
+ * Responsive spacing and layout classes
+ */
+.flow > * + * {
+  margin-top: var(--spacing-md);
+}
+
+.grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+}
+
+/* Motion & Animation
+ * Respects reduced motion preferences
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fadeIn var(--transition-normal) ease-in-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Theme Support
+ * System preference based theme switching
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Print Styles
+ * Optimized for readability and ink saving
+ */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .container {
+    max-width: none;
+    padding: 0;
+  }
+
+  @page {
+    margin: 2cm;
+  }
+}
+
+/* High Contrast Mode
+ * Enhanced visibility for Windows High Contrast Mode
+ */
+@media (forced-colors: active) {
+  :root {
+    --primary-color: CanvasText;
+    --background-primary: Canvas;
+    --border-color: CanvasText;
+  }
+}
+
+/* Performance Optimizations
+ * GPU acceleration and paint containment
+ */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Responsive Images
+ * Fluid image handling
+ */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  content-visibility: auto;
+}
+
+/* Form Elements
+ * Base styling for form controls
+ */
+input, 
+button, 
+textarea, 
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Interactive States
+ * Hover and active states for interactive elements
+ */
+.interactive {
+  transition: all var(--transition-fast);
+}
+
+.interactive:hover {
+  background-color: var(--background-hover);
+}
+
+.interactive:active {
+  background-color: var(--background-active);
+  transform: translateY(1px);
+}
