@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: production
+  labels:
+    app: auth-service
+    environment: production
+    version: 1.0.0
+    component: authentication
+    managed-by: kubernetes
+data:
+  # Core Environment Settings
+  NODE_ENV: "production"
+  AUTH_SERVICE_NAME: "auth-service"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # JWT Configuration
+  JWT_ALGORITHM: "HS256"
+  JWT_EXPIRES_IN: "24h"
+  REFRESH_TOKEN_EXPIRES_IN: "7d"
+  JWT_AUDIENCE: "task-management-system"
+  TOKEN_ISSUER: "task-management-system"
+  TOKEN_VERSION: "1"
+  CLOCK_TOLERANCE: "30"
+
+  # Multi-Factor Authentication
+  MFA_ENABLED: "true"
+  MFA_REQUIRED_ROLES: "admin,security-officer"
+  MFA_SECRET_LENGTH: "32"
+  MFA_ISSUER: "task-management-system"
+
+  # Password Policy
+  PASSWORD_MIN_LENGTH: "12"
+  PASSWORD_COMPLEXITY_REGEX: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]"
+  PASSWORD_EXPIRY_DAYS: "90"
+  PASSWORD_HISTORY_COUNT: "24"
+  PASSWORD_LOCKOUT_THRESHOLD: "5"
+
+  # Session Management
+  MAX_CONCURRENT_SESSIONS: "5"
+  SESSION_INACTIVITY_TIMEOUT: "30m"
+  SESSION_ABSOLUTE_TIMEOUT: "12h"
+  REFRESH_TOKEN_ROTATION: "true"
+
+  # Security Settings
+  ENCRYPTION_ALGORITHM: "aes-256-gcm"
+  FAILED_LOGIN_ATTEMPTS: "5"
+  ACCOUNT_LOCKOUT_DURATION: "30m"
+
+  # API Security
+  API_RATE_LIMIT: "100"
+  API_RATE_WINDOW: "60000"
+  CORS_ALLOWED_ORIGINS: "https://*.task-management-system.com"
+  CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH"
+  CORS_MAX_AGE: "86400"
+
+  # Cache Configuration
+  AUTH_CACHE_TTL: "300"
+  AUTH_CACHE_PREFIX: "auth:"
+
+  # OAuth/SSO Configuration
+  OAUTH_ENABLED: "true"
+  SSO_PROVIDERS: "google,microsoft,github"
+  SSO_CALLBACK_URL: "https://auth.task-management-system.com/oauth/callback"
+
+  # Monitoring and Logging
+  METRICS_ENABLED: "true"
+  TRACE_SAMPLING_RATE: "0.1"
+  HEALTH_CHECK_PATH: "/health"
+  READINESS_CHECK_PATH: "/ready"
