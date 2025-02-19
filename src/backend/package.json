@@ -61,7 +61,7 @@
     "dotenv": "16.3.1",
     "express": "4.x",
     "express-cache-middleware": "^1.0.0",
-    "express-correlation-id": "^2.0.1",
+    "express-correlation-id": "^3.0.1",
     "express-error-handler": "^1.1.0",
     "express-http-proxy": "^2.0.0",
     "express-monitor": "^2.0.0",
