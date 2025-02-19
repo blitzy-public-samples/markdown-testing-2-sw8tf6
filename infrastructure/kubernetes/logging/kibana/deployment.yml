@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+    component: logging
+    tier: visualization
+  annotations:
+    # Version tracking
+    app.kubernetes.io/version: "7.17.0"
+    # Description
+    app.kubernetes.io/description: "Kibana deployment for centralized logging visualization"
+    # Deployment strategy
+    deployment.kubernetes.io/revision: "1"
+
+spec:
+  # Maintain 2 replicas for high availability
+  replicas: 2
+  
+  # Pod selection criteria
+  selector:
+    matchLabels:
+      app: kibana
+      component: logging
+
+  # Deployment strategy configuration
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app: kibana
+        component: logging
+      annotations:
+        # Pod-specific annotations
+        checksum/config: "${sha256sum of kibana-configmap}"
+        co.elastic.logs/enabled: "true"
+
+    spec:
+      # Security context for the pod
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:7.17.0
+          imagePullPolicy: IfNotPresent
+          
+          # Container ports
+          ports:
+            - containerPort: 5601
+              name: http
+              protocol: TCP
+
+          # Resource requirements
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+
+          # Environment variables
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1024"
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch-service:9200"
+            - name: SERVER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          # Volume mounts
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
+              readOnly: true
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Lifecycle hooks
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 30"]
+
+      # Volumes configuration
+      volumes:
+        - name: config
+          configMap:
+            name: kibana-configmap
+            items:
+              - key: kibana.yml
+                path: kibana.yml
+
+      # Pod scheduling configuration
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: kibana
+                    component: logging
+                topologyKey: kubernetes.io/hostname
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 60
+
+      # Node selection
+      nodeSelector:
+        kubernetes.io/os: linux
+
+      # Tolerations for node conditions
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
