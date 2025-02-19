@@ -1,0 +1,108 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app: task-management
+    component: certificate-issuer
+    environment: production
+    managed-by: cert-manager
+    security-tier: critical
+  annotations:
+    cert-manager.io/issue-temporary-certificate: "true"
+    cert-manager.io/private-key-rotation-policy: "90d"
+    monitoring.cert-manager.io/prometheus-enabled: "true"
+    monitoring.cert-manager.io/alert-threshold: "30d"
+    audit.cert-manager.io/enabled: "true"
+    audit.cert-manager.io/retention: "90d"
+spec:
+  acme:
+    # Production Let's Encrypt ACME server endpoint
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Admin email for important notifications about certificates
+    email: admin@taskmanagement.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: istio
+            podTemplate:
+              metadata:
+                labels:
+                  security-critical: "true"
+                annotations:
+                  prometheus.io/scrape: "true"
+                  prometheus.io/port: "9402"
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                  fsGroup: 1000
+                  seccompProfile:
+                    type: RuntimeDefault
+                resources:
+                  requests:
+                    cpu: "100m"
+                    memory: "128Mi"
+                  limits:
+                    cpu: "200m"
+                    memory: "256Mi"
+---
+# Rate limiting configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-manager-rate-limits
+  namespace: cert-manager
+data:
+  max-certificates-per-domain: "50"
+  renewal-buffer-days: "30"
+  retry-interval: "1h"
+---
+# Monitoring configuration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+  labels:
+    app: task-management
+    component: certificate-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: cert-manager
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+# Alert rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cert-manager-alerts
+  namespace: cert-manager
+  labels:
+    app: task-management
+    component: certificate-alerts
+spec:
+  groups:
+    - name: certificate.rules
+      rules:
+        - alert: CertificateExpiryAlert
+          expr: cert_manager_certificate_expiration_timestamp_seconds - time() < 86400 * 30
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            description: "Certificate {{ $labels.certificate }} in namespace {{ $labels.namespace }} expires in less than 30 days"
+        - alert: CertificateRenewalFailure
+          expr: cert_manager_certificate_renewal_failures_total > 0
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            description: "Certificate renewal failed for {{ $labels.certificate }} in namespace {{ $labels.namespace }}"
