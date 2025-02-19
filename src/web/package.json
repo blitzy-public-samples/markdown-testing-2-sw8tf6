@@ -84,7 +84,7 @@
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^14.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/parser": "^8.24.1",
     "@vitejs/plugin-react": "^4.0.4",
     "axios-mock-adapter": "^1.22.0",
     "eslint": "^8.55.0",
