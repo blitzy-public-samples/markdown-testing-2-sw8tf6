@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-configmap
+  namespace: logging
+  labels:
+    app: kibana
+    component: logging
+    tier: visualization
+  annotations:
+    # Version tracking
+    app.kubernetes.io/version: "7.17.0"
+    # Description
+    app.kubernetes.io/description: "Kibana configuration for centralized logging"
+
+data:
+  kibana.yml: |
+    # Server configuration
+    server:
+      name: kibana
+      host: "0.0.0.0"
+      port: 5601
+      basePath: ""
+      maxPayloadBytes: 1048576  # 1MB
+      publicBaseUrl: ""
+      rewriteBasePath: false
+      ssl:
+        enabled: false
+
+    # Elasticsearch connection settings
+    elasticsearch:
+      hosts: ["http://elasticsearch-service:9200"]
+      requestTimeout: 30000
+      shardTimeout: 30000
+      ssl:
+        verificationMode: none
+      username: ""
+      password: ""
+      pingTimeout: 3000
+      startupTimeout: 5000
+      
+    # Monitoring configuration
+    monitoring:
+      ui:
+        container:
+          elasticsearch:
+            enabled: true
+      kibana:
+        collection:
+          enabled: true
+          interval: 10000  # 10 seconds
+
+    # X-Pack features
+    xpack:
+      security:
+        enabled: false
+      monitoring:
+        enabled: true
+        kibana:
+          collection:
+            enabled: true
+            interval: 10000
+      reporting:
+        enabled: false
+      graph:
+        enabled: false
+      ml:
+        enabled: false
+      
+    # Logging configuration  
+    logging:
+      appenders:
+        console:
+          type: console
+          layout:
+            type: json
+            highlight: false
+      root:
+        level: info
+      loggers:
+        - name: elasticsearch
+          level: warning
+        - name: http
+          level: info
+          
+    # Performance optimization
+    ops:
+      cGroupStats:
+        enabled: true
+    cpu:
+      cgroup:
+        enabled: true
+    memory:
+      cgroup:
+        enabled: true
+
+    # Search settings
+    search:
+      timeout: 30000
+      batchedReduceSize: 512
+      maxBuckets: 10000
+
+    # Saved objects settings
+    savedObjects:
+      maxImportPayloadBytes: 10485760  # 10MB
+      maxImportExportSize: 10000
+
+    # Visualization settings  
+    visualization:
+      tileMap:
+        options:
+          maxZoom: 18
+          minZoom: 0
