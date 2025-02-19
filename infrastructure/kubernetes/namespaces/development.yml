@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    name: development
+    environment: development
+    app: task-management-system
+    istio-injection: enabled
+    monitoring: enabled
+    network-policy: enabled
+    tier: development
+    version: 1.0.0
+    managed-by: terraform
+    security-tier: restricted
+  annotations:
+    # Node selection and scheduling
+    scheduler.alpha.kubernetes.io/node-selector: environment=development
+    
+    # Network policies
+    net.beta.kubernetes.io/network-policy: default-deny
+    network.policy.version: v1.0
+    
+    # Service mesh configuration
+    istio.io/rev: default
+    security.istio.io/tlsMode: strict
+    
+    # Monitoring configuration
+    monitoring.prometheus.io/scrape: "true"
+    monitoring.prometheus.io/port: "9090"
+    monitoring.config.version: v1.0
+    
+    # Backup configuration
+    backup.velero.io/backup-volumes: "true"
+    
+    # Security policies
+    security.alpha.kubernetes.io/pod-security-policy: restricted
+    security.policy.version: v1.0
+    
+    # Environment metadata
+    environment.scope: development
+    kubernetes.io/metadata.name: development
+    description: "Development namespace for Task Management System with enhanced security controls"
+    owner: "platform-team"
+    
+    # Resource quotas enabled
+    quota.kubernetes.io/enabled: "true"
+    
+    # Service mesh observability
+    sidecar.istio.io/inject: "true"
+    sidecar.istio.io/rewriteAppHTTPProbers: "true"
+
+spec:
+  finalizers:
+    - kubernetes
