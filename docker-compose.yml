@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # Frontend web application
+  web:
+    build:
+      context: ./src/web
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/web:/app
+      - /app/node_modules
+      - ./ssl:/etc/nginx/ssl:ro
+    environment:
+      - VITE_API_URL=http://api-gateway:4000
+      - VITE_WS_URL=ws://notification-service:4005
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    networks:
+      - task-management-network
+
+  # Database service
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backup:/backup
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=task_management
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    networks:
+      - task-management-network
+
+  # Redis cache service
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - redis_backup:/backup
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - task-management-network
+
+  # Message queue service
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_backup:/backup
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - task-management-network
+
+  # Load balancer and reverse proxy
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+      - api-gateway
+    networks:
+      - task-management-network
+
+# Import backend services configuration
+x-backend-services: &backend-services
+  extends:
+    file: src/backend/docker-compose.yml
+    service: services
+
+# Network configuration
+networks:
+  task-management-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+    options:
+      encrypt: "true"
+
+# Volume configuration
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /data/postgres
+      o: bind
+  postgres_backup:
+    driver: local
+    driver_opts:
+      type: none
+      device: /backup/postgres
+      o: bind
+  redis_data:
+    driver: local
+  redis_backup:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  rabbitmq_backup:
+    driver: local
+  file_uploads:
+    driver: local
+
+# Secrets configuration
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
