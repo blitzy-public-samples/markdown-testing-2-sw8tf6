@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: monitoring
+    part-of: task-management-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    description: "Grafana monitoring dashboard service for Task Management System"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: grafana
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hour session stickiness
+  publishNotReadyAddresses: false
+  # Ensure traffic only goes to ready pods
+  internalTrafficPolicy: Cluster
+  # Optimize for internal cluster communication
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
