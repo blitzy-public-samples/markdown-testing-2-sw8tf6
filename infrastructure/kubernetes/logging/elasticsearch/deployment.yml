@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: logging
+  labels:
+    app: elasticsearch
+    component: logging
+    tier: data
+  annotations:
+    # Version tracking
+    app.kubernetes.io/version: "7.17.0"
+    # Deployment strategy annotations
+    kubernetes.io/change-cause: "Initial deployment of Elasticsearch 7.17.0"
+
+spec:
+  # High availability with 3 replicas
+  replicas: 3
+  
+  selector:
+    matchLabels:
+      app: elasticsearch
+  
+  # Rolling update strategy for zero-downtime updates
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+        component: logging
+        tier: data
+      annotations:
+        # Pod configuration annotations
+        co.elastic.logs/enabled: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9200"
+    
+    spec:
+      # Security context for proper file permissions
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      
+      # Init container to set proper permissions
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.35
+          command: ['sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data']
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+        
+        - name: increase-vm-max-map
+          image: busybox:1.35
+          command: ['sysctl', '-w', 'vm.max_map_count=262144']
+          securityContext:
+            privileged: true
+        
+        - name: configure-sysctl
+          image: busybox:1.35
+          command: ['sh', '-c', 'ulimit -n 65536']
+          securityContext:
+            privileged: true
+      
+      # Main Elasticsearch container
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+          imagePullPolicy: IfNotPresent
+          
+          # Resource limits and requests
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+          
+          # Ports
+          ports:
+            - name: http
+              containerPort: 9200
+              protocol: TCP
+            - name: transport
+              containerPort: 9300
+              protocol: TCP
+          
+          # Environment variables
+          env:
+            - name: node.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: cluster.name
+              value: "elk-cluster"
+            - name: discovery.seed_hosts
+              value: "elasticsearch-service"
+            - name: cluster.initial_master_nodes
+              value: "elasticsearch-0"
+            - name: ES_JAVA_OPTS
+              value: "-Xms2g -Xmx2g -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
+            - name: bootstrap.memory_lock
+              value: "true"
+            - name: ZONE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['topology.kubernetes.io/zone']
+          
+          # Volume mounts
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+            - name: elasticsearch-config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+          
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      
+      # Volumes
+      volumes:
+        - name: elasticsearch-data
+          persistentVolumeClaim:
+            claimName: elasticsearch-data
+        - name: elasticsearch-config
+          configMap:
+            name: elasticsearch-configmap
+            items:
+              - key: elasticsearch.yml
+                path: elasticsearch.yml
+      
+      # Node affinity for proper distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - elasticsearch
+                topologyKey: kubernetes.io/hostname
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 120
