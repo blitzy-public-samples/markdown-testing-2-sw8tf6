@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+  namespace: logging
+  labels:
+    app: elasticsearch
+    component: logging
+    tier: data
+  annotations:
+    # Service discovery annotations
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    # Monitoring annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9200"
+
+spec:
+  type: ClusterIP
+  # Selector to match Elasticsearch pods
+  selector:
+    app: elasticsearch
+  
+  # Define ports for HTTP and Transport protocols
+  ports:
+    # REST API port
+    - name: http
+      port: 9200
+      targetPort: 9200
+      protocol: TCP
+    
+    # Inter-node communication port  
+    - name: transport
+      port: 9300
+      targetPort: 9300
+      protocol: TCP
+
+  # Session affinity for better performance
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
