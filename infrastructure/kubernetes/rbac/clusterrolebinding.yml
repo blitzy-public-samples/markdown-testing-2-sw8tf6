@@ -1,0 +1,53 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: task-management-system-binding
+  labels:
+    app: task-management-system
+    component: rbac
+    environment: production
+    managed-by: kubernetes
+    security-tier: critical
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+    security.kubernetes.io/last-reviewed: "2024-01-01"
+    description: "Binds Task Management System service accounts to RBAC permissions"
+    owner: "platform-team"
+
+# Bind service accounts to the cluster role
+subjects:
+  # API Gateway service account binding
+  - kind: ServiceAccount
+    name: api-gateway
+    namespace: production
+
+  # Authentication service account binding  
+  - kind: ServiceAccount
+    name: auth-service
+    namespace: production
+
+  # Task service account binding
+  - kind: ServiceAccount
+    name: task-service
+    namespace: production
+
+  # Project service account binding
+  - kind: ServiceAccount
+    name: project-service
+    namespace: production
+
+  # Notification service account binding
+  - kind: ServiceAccount
+    name: notification-service
+    namespace: production
+
+  # File service account binding
+  - kind: ServiceAccount
+    name: file-service
+    namespace: production
+
+# Reference to the cluster role containing the permission rules
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: task-management-system-role
